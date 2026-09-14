@@ -1,69 +1,147 @@
-import Image from "next/image";
+"use client";
+
+import { Suspense, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { useRoom } from "@/lib/useRoom";
+import { friendlyError } from "@/lib/client";
+import { Button, ErrorBanner, Input, SoundToggle, Spinner } from "@/components/ui";
 
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
+    <Suspense fallback={null}>
+      <HomeInner />
+    </Suspense>
+  );
+}
+
+function HomeInner() {
+  const searchParams = useSearchParams();
+  const { createRoom, joinRoom } = useRoom(null);
+
+  // An invite link (?room=CODE) should land directly on the join form.
+  const [mode, setMode] = useState<"none" | "create" | "join">(
+    searchParams.get("room") ? "join" : "none",
+  );
+  const [name, setName] = useState("");
+  const [code, setCode] = useState(searchParams.get("room") ?? "");
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  async function run(fn: () => Promise<void>, fallback: string) {
+    setError(null);
+    setBusy(true);
+    try {
+      await fn();
+      // Navigation happens on success; keep the busy state mounted.
+    } catch (e) {
+      setError(friendlyError(e) ?? fallback);
+      setBusy(false);
+    }
+  }
+
+  const handleCreate = () => {
+    if (!name.trim()) return setError("Enter your name first");
+    void run(() => createRoom(name), "Could not create room");
+  };
+
+  const handleJoin = () => {
+    if (!name.trim()) return setError("Enter your name first");
+    if (!code.trim()) return setError("Enter a room code");
+    void run(() => joinRoom(code, name), "Could not join room");
+  };
+
+  return (
+    <main className="relative flex flex-1 flex-col items-center justify-center gap-10 px-6 py-10">
+      <div className="absolute right-4 top-4">
+        <SoundToggle />
+      </div>
+
+      {/* Hero */}
+      <div className="text-center">
+        <p className="animate-rise mb-3 inline-block rounded-full border border-violet-400/30 bg-violet-500/10 px-4 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-violet-300">
+          Party game
+        </p>
+        <h1 className="title-glow bg-gradient-to-r from-violet-300 via-fuchsia-300 to-violet-300 bg-clip-text text-5xl font-black leading-tight tracking-tight text-transparent sm:text-6xl">
+          GUESS THE IMPOSTER
+        </h1>
+        <p className="mt-3 text-lg text-zinc-400 sm:text-xl">Can you spot who&apos;s lying?</p>
+      </div>
+
+      {/* Actions */}
+      <div className="flex w-full max-w-sm flex-col gap-3">
+        <Button
+          onClick={() => setMode(mode === "create" ? "none" : "create")}
+          className="w-full py-4 text-lg"
+          disabled={busy}
+        >
+          Create Room
+        </Button>
+        <Button
+          variant="ghost"
+          onClick={() => setMode(mode === "join" ? "none" : "join")}
+          className="w-full py-4 text-lg"
+          disabled={busy}
+        >
+          Join Room
+        </Button>
+      </div>
+
+      {/* Form */}
+      {mode !== "none" && (
+        <form
+          className="card-elevated animate-rise flex w-full max-w-sm flex-col gap-4 rounded-2xl border border-white/10 bg-white/[0.04] p-6"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (mode === "create") handleCreate();
+            else handleJoin();
+          }}
+        >
+          <div>
+            <label htmlFor="player-name" className="mb-1.5 block text-sm font-medium text-zinc-300">
+              Your name
+            </label>
+            <Input
+              id="player-name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. Ravi"
+              maxLength={20}
+              autoComplete="name"
+              autoFocus
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+          </div>
+          {mode === "join" && (
+            <div>
+              <label htmlFor="room-code" className="mb-1.5 block text-sm font-medium text-zinc-300">
+                Room code
+              </label>
+              <Input
+                id="room-code"
+                value={code}
+                onChange={(e) => setCode(e.target.value.toUpperCase())}
+                placeholder="ABCDE"
+                maxLength={5}
+                autoCapitalize="characters"
+                className="text-center font-mono text-xl tracking-[0.4em]"
+              />
+            </div>
+          )}
+          {error && <ErrorBanner message={error} />}
+          <Button type="submit" busy={busy} className="mt-1 w-full">
+            {busy ? (mode === "create" ? "Creating room…" : "Joining room…") : mode === "create" ? "Create" : "Join"}
+          </Button>
+        </form>
+      )}
+
+      {busy && mode === "none" && <Spinner />}
+
+      {/* How to play */}
+      <section className="w-full max-w-md text-center text-sm text-zinc-500">
+        <p>
+          Everyone gets the same secret word — except one imposter, who gets nothing. Give one-word-ish
+          clues, discuss nothing, vote. Catch the liar to win.
+        </p>
+      </section>
+    </main>
   );
 }
