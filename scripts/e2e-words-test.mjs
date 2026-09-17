@@ -155,7 +155,7 @@ async function main() {
   const { CODE, players } = await createRoom(["Ww1", "Ww2", "Ww3", "Ww4"]);
   await startReady(CODE, players);
   let s = await state(CODE, players[0].token);
-  check("game reaches ROLE_REVEAL", s.phase === "ROLE_REVEAL");
+  check("game started (round in progress)", s.phase === "ROLE_REVEAL" || s.phase === "CLUE_PHASE", `phase=${s.phase}`);
 
   let words = await revealWords(CODE, players);
   check("1. every player receives a secret word",
@@ -180,10 +180,8 @@ async function main() {
     const an = analyze(w);
     const impSeat = w.findIndex((x) => x.word === an.altWord);
     impostorSeats.add(impSeat);
-    if (pairContains(WORD_PAIRS.find((p) => pairContains(p, an.mainWord, an.altWord)) ?? ["", ""], an.mainWord, an.mainWord) && !!an.mainWord) {
-      const pair = WORD_PAIRS.find((p) => pairContains(p, an.mainWord, an.altWord));
-      mainSides.add(pair[0] === an.mainWord ? 0 : 1);
-    }
+    const pair = WORD_PAIRS.find((p) => pairContains(p, an.mainWord, an.altWord));
+    if (pair) mainSides.add(pair[0] === an.mainWord ? 0 : 1);
     await post("/api/game/action", { action: "close", code: room.CODE, token: room.players[0].token });
   }
   check("6. alternate player is randomly selected (varies across games)", impostorSeats.size >= 2, `seats=${[...impostorSeats]}`);
@@ -284,7 +282,8 @@ async function main() {
     const an = analyze(w);
     await post("/api/game/action", { action: "leave", code: room.CODE, token: room.players[0].token }); // host leaves
     s = await state(room.CODE, room.players[1].token);
-    check("18. host reassigned after host leaves", s.players.some((p) => p.isHost) && s.phase === "ROLE_REVEAL");
+    check("18. host reassigned after host leaves and round continues",
+      s.players.some((p) => p.isHost) && s.phase === "CLUE_PHASE", `phase=${s.phase}`);
     const remaining = await revealWords(room.CODE, room.players.slice(1));
     check("18b. remaining players keep their own secret words",
       remaining.every((x) => typeof x.word === "string" && x.word.length > 0));

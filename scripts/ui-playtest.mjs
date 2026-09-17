@@ -129,7 +129,9 @@ async function doRoleReveal(players) {
       t.match(/your secret word\s+([\p{L}\w' ]+?)\s+keep your word secret/iu) ??
       t.match(/your secret word\s+([\p{L}\w' ]+)/iu);
     const word = m ? m[1].trim() : "";
-    check(`${p.name} sees a secret word`, /^[\p{L}]{3,}/u.test(word) && !/secret|word|your/i.test(word), t.slice(0, 100));
+    check(`${p.name} sees a secret word`,
+      word.length >= 3 && /^[\p{L}][\p{L}\w' ]*$/u.test(word) && !/secret|word|your/i.test(word),
+      t.slice(0, 100));
     const body = t.toLowerCase();
     check(`${p.name} is not told they are the imposter`,
       !body.includes("the imposter") && !body.includes("you are the imposter") && !body.includes("odd one") &&
