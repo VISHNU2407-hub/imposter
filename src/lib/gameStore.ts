@@ -9,10 +9,13 @@ import type {
   RoundResult,
   VoteEntry,
 } from "./gameTypes";
-import { MAX_CLUE_ROUNDS } from "./gameTypes";
+import { MAX_CLUE_ROUNDS, TURN_TIME_SECONDS } from "./gameTypes";
 import { WORD_PAIRS } from "./wordPairs";
 
 export const MIN_PLAYERS = 3;
+
+/** Clue turns auto-pass after this many ms without a submission. */
+const TURN_TIME_MS = TURN_TIME_SECONDS * 1000;
 
 function pickRandom<T>(arr: readonly T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
@@ -57,6 +60,8 @@ interface Room {
   imposterWord: string | null;
   turnOrder: PlayerId[];
   currentTurnIndex: number;
+  /** Server epoch-ms when the current clue turn auto-passes; null outside CLUE_PHASE. */
+  turnEndsAt: number | null;
   clues: ClueEntry[];
   votes: VoteEntry[];
   result: RoundResult | null;
@@ -218,6 +223,36 @@ function buildResult(room: Room): RoundResult {
 }
 
 /**
+ * Server-side lazy timer sweep, evaluated on every state read/action: if the
+ * current clue turn's deadline has lapsed, auto-pass that player (record a
+ * "(skipped)" entry so the turn order stays visible) and move on. Loops so a
+ * chain of AFK players can't stall the round. Must be called before any
+ * advance checks or state views are built.
+ */
+function sweepTurnTimer(room: Room) {
+  if (room.phase !== "CLUE_PHASE" || room.turnEndsAt === null) return;
+  while (room.phase === "CLUE_PHASE" && room.turnEndsAt !== null && now() >= room.turnEndsAt) {
+    const skippedId = room.turnOrder[room.currentTurnIndex];
+    const skipped = room.players.find((p) => p.id === skippedId);
+    room.clues.push({
+      playerId: skippedId,
+      playerName: skipped?.name ?? "Unknown",
+      text: "(skipped)",
+      turnNumber: room.currentTurnIndex + 1,
+      round: room.clueRound,
+    });
+    if (skipped) skipped.clue = "(skipped)";
+    room.currentTurnIndex += 1;
+    if (room.currentTurnIndex >= room.turnOrder.length) {
+      room.turnEndsAt = null;
+      maybeAdvance(room);
+    } else {
+      room.turnEndsAt = now() + TURN_TIME_MS;
+    }
+  }
+}
+
+/**
  * Resolve the current ROUND_DECISION phase: count every active player's
  * choice and apply the majority rule. A tie always means "play another
  * round" (only reachable before round 3, which never enters a decision).
@@ -241,6 +276,7 @@ function resolveDecision(room: Room) {
     room.currentTurnIndex = 0;
     for (const p of room.players) p.clue = null;
     room.phase = "CLUE_PHASE";
+    room.turnEndsAt = now() + TURN_TIME_MS;
   }
 }
 
@@ -256,6 +292,7 @@ function maybeAdvance(room: Room) {
       (id) => room.players.find((p) => p.id === id)?.clue !== null,
     );
     if (allClued) {
+      room.turnEndsAt = null;
       if (room.clueRound >= MAX_CLUE_ROUNDS) {
         // Round 3 complete: voting starts automatically, no decision phase.
         room.phase = "VOTING";
@@ -291,6 +328,7 @@ function resetRound(room: Room) {
   room.result = null;
   room.clueRound = 1;
   room.decisionResult = null;
+  room.turnEndsAt = null;
   room.departed.clear();
   room.departedScores.clear();
   for (const p of room.players) {
@@ -332,8 +370,15 @@ function removePlayerInternal(room: Room, playerId: PlayerId): "removed" | "host
     const firstUnclued = room.turnOrder.findIndex(
       (id) => room.players.find((p) => p.id === id)?.clue === null,
     );
-    if (firstUnclued === -1) maybeAdvance(room);
-    else room.currentTurnIndex = firstUnclued;
+    if (firstUnclued === -1) {
+      room.turnEndsAt = null;
+      maybeAdvance(room);
+    } else {
+      // The departed player may have been mid-turn: restart the clock for the
+      // player now on the hot seat.
+      room.currentTurnIndex = firstUnclued;
+      room.turnEndsAt = now() + TURN_TIME_MS;
+    }
   } else if (room.phase === "ROUND_DECISION") {
     // A departed player's decision is dropped with their seat; re-evaluate now.
     maybeAdvance(room);
@@ -384,6 +429,7 @@ export function createRoom(hostName: string): { roomCode: string; playerId: Play
     result: null,
     clueRound: 1,
     decisionResult: null,
+    turnEndsAt: null,
     departed: new Map(),
     departedScores: new Map(),
     roundNumber: 0,
@@ -485,6 +531,7 @@ export function startGame(roomCode: string, token: string): void {
   }
   room.turnOrder = shuffled.map((p) => p.id);
   room.currentTurnIndex = 0;
+  room.turnEndsAt = null;
   room.phase = "ROLE_REVEAL";
 }
 
@@ -502,12 +549,15 @@ function maybeAdvanceReady(room: Room) {
   const all = room.players.length > 0 && room.players.every((p) => p.ready);
   if (all) {
     room.phase = "CLUE_PHASE";
+    room.turnEndsAt = now() + TURN_TIME_MS;
   }
 }
 
 export function submitClue(roomCode: string, token: string, rawClue: string): void {
   const room = rooms.get(roomCode.trim().toUpperCase());
   if (!room) throw new GameError("NOT_FOUND", "Room not found");
+  if (room.phase !== "CLUE_PHASE") throw new GameError("BAD_STATE", "Not in clue phase");
+  sweepTurnTimer(room);
   if (room.phase !== "CLUE_PHASE") throw new GameError("BAD_STATE", "Not in clue phase");
 
   const player = getPlayer(room, token);
@@ -520,6 +570,14 @@ export function submitClue(roomCode: string, token: string, rawClue: string): vo
   const clue = sanitizeClue(rawClue);
   if (!clue) throw new GameError("VALIDATION", "Clue cannot be empty");
 
+  // Two players must never give the same clue: reject case-insensitive
+  // duplicates of anything said in ANY clue round of this game round.
+  // (room.clues is wiped by resetRound/startGame, so scope is one game.)
+  const duplicate = room.clues.some((c) => c.text.toLowerCase() === clue.toLowerCase());
+  if (duplicate) {
+    throw new GameError("DUPLICATE_CLUE", "Someone already said that — give a different clue");
+  }
+
   player.clue = clue;
   room.clues.push({
     playerId: player.id,
@@ -529,6 +587,11 @@ export function submitClue(roomCode: string, token: string, rawClue: string): vo
     round: room.clueRound,
   });
   room.currentTurnIndex += 1;
+  if (room.currentTurnIndex >= room.turnOrder.length) {
+    room.turnEndsAt = null;
+  } else {
+    room.turnEndsAt = now() + TURN_TIME_MS;
+  }
   maybeAdvance(room);
 }
 
@@ -605,6 +668,7 @@ export function getState(roomCode: string, token: string | null): RoomStateView 
   if (!room) throw new GameError("NOT_FOUND", "Room not found");
 
   sweepExpiredRooms();
+  sweepTurnTimer(room);
   const me = getPlayer(room, token);
   if (me) touchPlayer(room, me);
 
@@ -649,6 +713,7 @@ export function getState(roomCode: string, token: string | null): RoomStateView 
     currentTurnPlayerId: room.phase === "CLUE_PHASE" ? (room.turnOrder[room.currentTurnIndex] ?? null) : null,
     currentTurnNumber: room.phase === "CLUE_PHASE" ? room.currentTurnIndex + 1 : 0,
     clueRound: room.clueRound,
+    turnEndsAt: room.phase === "CLUE_PHASE" ? room.turnEndsAt : null,
     yourDecision: me?.decision ?? null,
     playersWhoDecided:
       room.phase === "ROUND_DECISION"

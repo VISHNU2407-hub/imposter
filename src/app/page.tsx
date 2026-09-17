@@ -58,10 +58,10 @@ function HomeInner() {
 
       {/* Hero */}
       <div className="text-center">
-        <p className="animate-rise mb-3 inline-block rounded-full border border-violet-400/30 bg-violet-500/10 px-4 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-violet-300">
+        <p className="animate-rise mb-3 inline-block rounded-full border border-amber-400/30 bg-amber-500/10 px-4 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-amber-300">
           Party game
         </p>
-        <h1 className="title-glow bg-gradient-to-r from-violet-300 via-fuchsia-300 to-violet-300 bg-clip-text text-5xl font-black leading-tight tracking-tight text-transparent sm:text-6xl">
+        <h1 className="title-glow bg-gradient-to-r from-amber-200 via-yellow-100 to-amber-200 bg-clip-text text-5xl font-black leading-tight tracking-tight text-transparent sm:text-6xl">
           GUESS THE IMPOSTER
         </h1>
         <p className="mt-3 text-lg text-zinc-400 sm:text-xl">Can you spot who&apos;s lying?</p>

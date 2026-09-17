@@ -22,7 +22,7 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
         <p className="text-lg text-zinc-400">You are not in this room yet.</p>
         <a
           href={`/?room=${urlCode.toUpperCase()}`}
-          className="inline-flex min-h-11 items-center rounded-xl bg-violet-600 px-4 py-2.5 font-semibold text-white hover:bg-violet-500"
+          className="inline-flex min-h-11 items-center rounded-xl bg-amber-600 px-4 py-2.5 font-semibold text-white hover:bg-amber-500"
         >
           Enter name to join
         </a>
@@ -51,6 +51,20 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
           Room {state.roomCode}
         </span>
       </header>
+
+      {/* Persistent secret-word reminder (hidden during reveal flip so the
+          tap-to-see surprise is preserved). Shown for the rest of the game. */}
+      {state.phase !== "ROLE_REVEAL" && state.yourRole?.secretWord && (
+        <div className="flex justify-center">
+          <span
+            aria-label={`Your secret word: ${state.yourRole.secretWord}`}
+            className="inline-flex items-center gap-2 rounded-full border border-amber-400/40 bg-amber-500/10 px-4 py-1.5 text-sm font-bold tracking-wide text-amber-100"
+          >
+            <span aria-hidden="true">🎴</span>
+            {state.yourRole.secretWord}
+          </span>
+        </div>
+      )}
 
       <ErrorBanner message={error} onDismiss={room.clearError} />
       {state.phase === "LOBBY" && <Lobby room={room} />}

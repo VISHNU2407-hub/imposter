@@ -54,7 +54,7 @@ export default function Voting({ room }: { room: UseRoom }) {
           <div
             key={p.id}
             className={`animate-rise rounded-2xl border p-3 transition-colors ${
-              myVote === p.id ? "border-violet-400/60 bg-violet-500/15" : "border-white/10 bg-white/[0.03]"
+              myVote === p.id ? "border-amber-400/60 bg-amber-500/15" : "border-white/10 bg-white/[0.03]"
             }`}
           >
             <div className="flex items-center justify-between gap-2">
@@ -74,7 +74,7 @@ export default function Voting({ room }: { room: UseRoom }) {
               {p.id === me.id ? (
                 <span className="shrink-0 rounded-lg border border-white/10 px-3 py-1.5 text-xs text-zinc-500">You</span>
               ) : myVote === p.id ? (
-                <span className="animate-pop flex shrink-0 items-center gap-1.5 rounded-lg bg-violet-600 px-3 py-1.5 text-xs font-semibold text-white">
+                <span className="animate-pop flex shrink-0 items-center gap-1.5 rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white">
                   <span aria-hidden="true">✓</span> YOUR VOTE
                 </span>
               ) : (

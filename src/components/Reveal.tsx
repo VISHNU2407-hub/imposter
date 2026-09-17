@@ -96,7 +96,7 @@ export default function Reveal({ room }: { room: UseRoom }) {
             <li
               key={s.playerId}
               className={`flex items-center justify-between gap-2 rounded-xl border px-3 py-2 text-sm ${
-                s.roundScore > 0 ? "border-violet-400/40 bg-violet-500/10" : "border-white/10 bg-white/5"
+                s.roundScore > 0 ? "border-amber-400/40 bg-amber-500/10" : "border-white/10 bg-white/5"
               }`}
             >
               <PlayerChip name={s.playerName} highlight={s.playerId === state.you?.id} />
@@ -104,7 +104,7 @@ export default function Reveal({ room }: { room: UseRoom }) {
                 {s.roundScore > 0 && (
                   <span className="animate-pop text-xs font-bold text-emerald-300">+{s.roundScore}</span>
                 )}
-                <span className="font-bold text-violet-200">{s.score}</span>
+                <span className="font-bold text-amber-200">{s.score}</span>
               </span>
             </li>
           ))}

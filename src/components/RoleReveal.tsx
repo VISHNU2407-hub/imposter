@@ -39,26 +39,26 @@ export default function RoleReveal({ room }: { room: UseRoom }) {
         type="button"
         onClick={() => setRevealed(true)}
         aria-label={revealed ? "Your secret word" : "Tap to reveal your secret word"}
-        className="group relative w-full overflow-hidden rounded-2xl border border-violet-400/40 bg-violet-500/10 p-6 text-center transition-colors hover:bg-violet-500/15"
+        className="group relative w-full overflow-hidden rounded-2xl border border-amber-400/40 bg-amber-500/10 p-6 text-center transition-colors hover:bg-amber-500/15"
       >
         {!revealed ? (
           <span className="flex min-h-32 flex-col items-center justify-center gap-2">
             <span className="text-4xl" aria-hidden="true">
               🎴
             </span>
-            <span className="text-sm font-semibold uppercase tracking-widest text-violet-200">
+            <span className="text-sm font-semibold uppercase tracking-widest text-amber-200">
               Tap to reveal your word
             </span>
           </span>
         ) : (
           <span className="animate-pop block">
-            <span className="block text-sm font-semibold uppercase tracking-widest text-violet-300">
+            <span className="block text-sm font-semibold uppercase tracking-widest text-amber-300">
               Your secret word
             </span>
             <span className="mt-2 block text-4xl font-black tracking-tight text-white">
               {secretWord}
             </span>
-            <span className="mt-4 block text-sm text-violet-200">
+            <span className="mt-4 block text-sm text-amber-200">
               Keep your word secret.
             </span>
           </span>

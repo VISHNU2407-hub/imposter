@@ -38,9 +38,9 @@ export function Button({
     "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 py-2.5 font-semibold transition-all duration-150 disabled:cursor-not-allowed disabled:opacity-40";
   const styles = {
     primary:
-      "bg-violet-600 text-white shadow-lg shadow-violet-950/40 hover:bg-violet-500 hover:shadow-violet-900/40 active:scale-[0.98]",
+      "bg-amber-600 text-zinc-950 shadow-lg shadow-amber-950/40 hover:bg-amber-500 hover:shadow-amber-900/40 active:scale-[0.98]",
     success:
-      "bg-emerald-600 text-white shadow-lg shadow-emerald-950/40 hover:bg-emerald-500 active:scale-[0.98]",
+      "bg-emerald-700 text-white shadow-lg shadow-emerald-950/40 hover:bg-emerald-600 active:scale-[0.98]",
     ghost: "border border-white/15 text-zinc-200 hover:bg-white/10 active:scale-[0.98]",
     danger: "border border-red-500/40 text-red-300 hover:bg-red-500/10 active:scale-[0.98]",
   } as const;
@@ -61,7 +61,7 @@ export function Button({
 export function Spinner({ className = "h-8 w-8" }: { className?: string }) {
   return (
     <span
-      className={`inline-block animate-spin rounded-full border-2 border-violet-400 border-t-transparent ${className}`}
+      className={`inline-block animate-spin rounded-full border-2 border-amber-400 border-t-transparent ${className}`}
       aria-hidden="true"
     />
   );
@@ -74,7 +74,7 @@ export function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <input
       {...rest}
-      className={`w-full rounded-xl border border-white/15 bg-black/30 px-4 py-2.5 text-base text-white placeholder:text-zinc-500 focus:border-violet-400 focus:outline-none focus:ring-2 focus:ring-violet-400/30 ${className}`}
+      className={`w-full rounded-xl border border-white/15 bg-black/30 px-4 py-2.5 text-base text-white placeholder:text-zinc-500 focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-400/30 ${className}`}
     />
   );
 }
@@ -97,7 +97,7 @@ export function PlayerChip({
   return (
     <span
       className={`chip inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm ${
-        highlight ? "border-violet-400/60 bg-violet-500/20 text-violet-100" : "border-white/10 bg-white/5 text-zinc-200"
+        highlight ? "border-amber-400/60 bg-amber-500/20 text-amber-100" : "border-white/10 bg-white/5 text-zinc-200"
       } ${connected ? "" : "opacity-40"}`}
       title={connected ? undefined : "disconnected"}
     >
@@ -116,7 +116,7 @@ export function PlayerChip({
 
 export function PhaseBadge({ children }: { children: ReactNode }) {
   return (
-    <span className="rounded-full border border-violet-400/40 bg-violet-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-violet-200">
+    <span className="rounded-full border border-amber-400/40 bg-amber-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-amber-200">
       {children}
     </span>
   );
@@ -164,7 +164,7 @@ export function CodeDisplay({ code, large = false }: { code: string; large?: boo
       onClick={() => void copy()}
       title="Click to copy"
       aria-label={`Copy room code ${code.split("").join(" ")}`}
-      className={`group relative inline-flex items-center gap-2 rounded-xl border border-dashed border-violet-400/50 bg-violet-500/10 font-mono font-bold tracking-[0.3em] text-violet-200 transition-colors hover:bg-violet-500/20 ${
+      className={`group relative inline-flex items-center gap-2 rounded-xl border border-dashed border-amber-400/50 bg-amber-500/10 font-mono font-bold tracking-[0.3em] text-amber-200 transition-colors hover:bg-amber-500/20 ${
         large ? "px-6 py-4 text-4xl" : "px-4 py-2 text-2xl"
       }`}
     >

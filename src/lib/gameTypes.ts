@@ -16,6 +16,9 @@ export type ClueRoundNumber = 1 | 2 | 3;
 
 export const MAX_CLUE_ROUNDS: ClueRoundNumber = 3;
 
+/** Seconds each player has to give their clue before they are auto-passed. */
+export const TURN_TIME_SECONDS = 30;
+
 /** A player's answer during the ROUND_DECISION phase. */
 export type DecisionChoice = "vote" | "play";
 
@@ -101,6 +104,8 @@ export interface RoomStateView {
   currentTurnNumber: number;
   /** Which clue round (1..3) is active / just completed. */
   clueRound: ClueRoundNumber;
+  /** Server epoch-ms when the current clue turn auto-passes (null outside CLUE_PHASE). */
+  turnEndsAt: number | null;
   // ROUND_DECISION
   yourDecision: DecisionChoice | null;
   playersWhoDecided: PlayerId[];
