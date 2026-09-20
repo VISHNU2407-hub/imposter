@@ -27,6 +27,20 @@ npm start
 Open two or more browser windows (or phones on the same network via your LAN IP) to play.
 Minimum 3 players per room.
 
+## Deploy to Render
+
+A `render.yaml` blueprint is included. Connect this repo to a new Render Blueprint
+(New → Blueprint) and it provisions a single Node web service:
+
+- Build: `npm run build` · Start: `npm start` (binds to Render's `PORT`, verified `next start`)
+- Health check: `/api/health`
+- Node pinned via `NODE_VERSION` env + `engines` in `package.json`
+
+**Must stay a single instance** (`numInstances: 1` is set) — room state lives in
+process memory, so multiple replicas would split players across servers. Rooms are
+lost when the instance restarts or sleeps (free plan); this is the documented MVP
+limitation below.
+
 ## How a round works
 
 ```

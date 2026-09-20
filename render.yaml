@@ -1,0 +1,19 @@
+# Render Blueprint — https://render.com/docs/blueprint-spec
+services:
+  - type: web
+    name: guess-the-imposter
+    runtime: node
+    plan: free
+    region: oregon
+    buildCommand: npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    # Game state lives in memory on a single process. Must never scale to
+    # multiple instances or rooms will split across servers.
+    numInstances: 1
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Next.js 16 needs >=20.9.0; the lockfile's dev toolchain needs >=22.12.0.
+      - key: NODE_VERSION
+        value: 24.14.1
